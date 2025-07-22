@@ -17,3 +17,11 @@ class PhoneNumber(models.Model):
     contact = models.ForeignKey(TestContact, related_name='phone_numbers', on_delete=CASCADE)
     number = models.CharField(max_length=20)
     type = models.CharField(max_length=10, choices=PHONE_TYPES)
+
+    class Meta:
+        unique_together = ('contact', 'type')
+        verbose_name = "Phone Number"
+        verbose_name_plural = "Phone Numbers"
+
+    def __str__(self):
+        return f"{self.contact.name} - {self.type}: {self.number}"
