@@ -19,6 +19,7 @@ class PhoneNumber(models.Model):
     type = models.CharField(max_length=10, choices=PHONE_TYPES)
 
     class Meta:
+        # Prevents multiple numbers of the same type for one contact
         unique_together = ('contact', 'type')
         verbose_name = "Phone Number"
         verbose_name_plural = "Phone Numbers"

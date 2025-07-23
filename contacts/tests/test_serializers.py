@@ -106,3 +106,23 @@ class ContactSerializerTests(TestCase):
         serializer = ContactSerializer(data=payload)
         self.assertFalse(serializer.is_valid())
         self.assertIn("phone_numbers", serializer.errors)
+
+    def test_create_contact_phone_number_missing_type_fails(self):
+        payload = {
+            "name": "Test",
+            "email": "test_missing_type@unilink.com",
+            "phone_numbers": [{"number": "12345"}]  # no 'type'
+        }
+        serializer = ContactSerializer(data=payload)
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("phone_numbers", serializer.errors)
+
+    def test_partial_update_contact_phone_numbers_unchanged(self):
+        contact = Contact.objects.create(name="Partial", email="partial@unilink.com")
+        PhoneNumber.objects.create(contact=contact, number="7777", type="mobile")
+        
+        payload = {"name": "Partial Updated"}
+        serializer = ContactSerializer(contact, data=payload, partial=True)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        updated = serializer.save()
+        self.assertEqual(updated.phone_numbers.count(), 1)

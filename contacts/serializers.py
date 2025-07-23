@@ -3,14 +3,36 @@ from contacts.models import Contact, PhoneNumber
 from rest_framework.exceptions import ValidationError
 
 
-class PhoneNumberSerializer(serializers.ModelSerializer):
+class PhoneNumberNestedSerializer(serializers.ModelSerializer):
+    """
+    Used only within ContactSerializer for nested read/write.
+    `contact` is inferred from context and not required in request payload.
+    """
     class Meta:
         model = PhoneNumber
-        fields = ('id', 'number', 'type')
+        fields = ('id', 'contact', 'number', 'type')
+        read_only_fields = ('contact',)  # injected from Contact serializer during save
+
+
+class PhoneNumberSerializer(serializers.ModelSerializer):
+    """
+    Used in standalone /api/phone-numbers/ endpoint.
+    Requires `contact` to be provided explicitly.
+    """
+    class Meta:
+        model = PhoneNumber
+        fields = ('id', 'contact', 'number', 'type')  # contact required here
 
 
 class ContactSerializer(serializers.ModelSerializer):
-    phone_numbers = PhoneNumberSerializer(many=True)
+    """
+    Handles full serialization and deserialization of Contact and nested phone numbers.
+    Notes:
+    - Allows nested creation/update of phone numbers.
+    - Prevents duplicate types using `validate_phone_numbers`.
+    - `contact` field on nested PhoneNumber is injected explicitly during save.
+    """
+    phone_numbers = PhoneNumberNestedSerializer(many=True)
 
     class Meta:
         model = Contact
@@ -18,6 +40,7 @@ class ContactSerializer(serializers.ModelSerializer):
         read_only_fields = ('created_at',)
 
     def validate_phone_numbers(self, value):
+        # Each phone type (mobile, work, home) appears only once per contact
         types = [phone['type'] for phone in value]
         if len(types) != len(set(types)):
             raise ValidationError("Duplicate phone number types are not allowed.")
@@ -26,6 +49,7 @@ class ContactSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         phone_numbers_data = validated_data.pop('phone_numbers', [])
         contact = Contact.objects.create(**validated_data)
+        # Reinject `contact` into each phone entry
         for phone_data in phone_numbers_data:
             PhoneNumber.objects.create(contact=contact, **phone_data)
         return contact
@@ -37,7 +61,7 @@ class ContactSerializer(serializers.ModelSerializer):
         instance.save()
 
         if phone_numbers_data is not None:
-            # delete existing phone numbers and recreate
+            # Replace all existing phone numbers with new set
             instance.phone_numbers.all().delete()
             for phone_data in phone_numbers_data:
                 PhoneNumber.objects.create(contact=instance, **phone_data)
