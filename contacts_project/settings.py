@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
+from urllib.parse import urlparse
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,7 +27,13 @@ SECRET_KEY = 'django-insecure-!*cxap@_8kb*b)b50!3pv^2jg7i)y$w0*ts%anq1ed-ld4-4zl
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["8000-mnpenchev-unilinkcontac-e9o89vxte7v.ws-eu120.gitpod.io"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "[::1]"]
+
+# Allow Gitpod workspace host if running in Gitpod
+GITPOD_URL = os.environ.get("GITPOD_WORKSPACE_URL")
+if GITPOD_URL:
+    hostname = urlparse(GITPOD_URL).netloc
+    ALLOWED_HOSTS.append(f"8000-{hostname}")
 
 CSRF_TRUSTED_ORIGINS = [
     "https://*.gitpod.io",
